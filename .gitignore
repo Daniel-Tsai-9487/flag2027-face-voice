@@ -1,0 +1,9 @@
+data/
+runs/
+submissions/
+baseline/
+.venv/
+__pycache__/
+*.pt
+*.npy
+*.zip

@@ -1,0 +1,12 @@
+# Python 3.12. Install PyTorch first (CUDA 12.8 build; needed for RTX 50-series GPUs):
+#   pip install torch==2.11.0 --index-url https://download.pytorch.org/whl/cu128
+numpy==2.5.4
+pandas==3.0.6
+scikit-learn==1.9.1
+scipy==1.18.1
+transformers==5.20.2
+pillow==13.0.0
+soundfile==0.14.0
+# Only needed for the ArcFace experiments (extract_features.py --only faces):
+#   pip install insightface==2.1
+#   pip uninstall -y onnxruntime onnxruntime-gpu && pip install "onnxruntime-gpu[cuda,cudnn]==1.31.0"

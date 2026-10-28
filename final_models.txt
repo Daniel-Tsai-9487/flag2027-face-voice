@@ -1,0 +1,21 @@
+# Final ensemble: run name and weight (models trained by reproduce_final.sh)
+off_s1 1
+off_s2 1
+off_s3 1
+off_s4 1
+off_s5 1
+off_s6 1
+off_s7 1
+off_s8 1
+off_s9 1
+off_s10 1
+clipw_s1 1
+clipw_s2 1
+clipw_s3 1
+clipw_s4 1
+clipw_s5 1
+clipw_s6 1
+clipw_s7 1
+clipw_s8 1
+clipw_s9 1
+clipw_s10 1
