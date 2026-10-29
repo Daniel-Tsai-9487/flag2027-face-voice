@@ -7,6 +7,7 @@ scipy==1.18.1
 transformers==5.20.2
 pillow==13.0.0
 soundfile==0.14.0
-# Only needed for the ArcFace experiments (extract_features.py --only faces):
-#   pip install insightface==2.1
+# Face gender for the gender-consistency term (extract_attributes.py --only face), also used by the ArcFace experiments:
+insightface==2.1
+# insightface installs the CPU build of onnxruntime; replace it with the GPU build afterwards:
 #   pip uninstall -y onnxruntime onnxruntime-gpu && pip install "onnxruntime-gpu[cuda,cudnn]==1.31.0"

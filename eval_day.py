@@ -2,7 +2,8 @@
 
 1. 檢查 eval 資料夾結構（四個配對清單與官方特徵 CSV）。
 2. 從 final_models.txt 列出的模型設定，判斷需要哪些額外特徵（clip、wavlmh、v2），缺的才擷取。
-3. 用 make_submission.py --split eval 產生提交檔。
+   最終系統含性別一致項（runs/gender_term.json，由 gender_term.py fit 產生），另需 v2 語音特徵與臉部屬性。
+3. 用 gender_term.py submit 產生提交檔（加 --no_gender_term 時改用 make_submission.py）。
 4. 檢查提交檔：四個分數檔都在、列數與 key 和配對清單一致、分數沒有 NaN。
 
 用法：
@@ -22,6 +23,7 @@ sys.path.insert(0, str(ROOT / "src"))
 import flag_data  # noqa: E402
 
 PY = sys.executable
+GENDER_CFG = ROOT / "runs" / "gender_term.json"
 CELLS = [(t, lang, cond) for t in flag_data.TRACKS
          for lang, cond in ((flag_data.HEARD, "heard"), (flag_data.UNHEARD, "unheard"))]
 # 特徵來源 → extract_features.py 的 --only 參數與 features_v2 檔名
@@ -104,15 +106,22 @@ def main():
     p.add_argument("--eval_dir", default=None, help="eval 資料不在 data/eval_set 時指定")
     p.add_argument("--out", default="final")
     p.add_argument("--ckpt", default="final.pt")
+    p.add_argument("--no_gender_term", action="store_true", help="不加性別一致項，只用 make_submission.py")
     args = p.parse_args()
+    use_gt = not args.no_gender_term
+    if use_gt and not GENDER_CFG.exists():
+        raise SystemExit(f"找不到 {GENDER_CFG}；請先執行 gender_term.py fit，或加 --no_gender_term")
 
     root = flag_data.split_root(args.split, args.eval_dir)
     print(f"[1/4] 檢查 {root}", flush=True)
     check_structure(root)
 
     specs = read_models(args.models)
-    print(f"[2/4] {len(specs)} 個模型；檢查額外特徵", flush=True)
-    for modality, part in sorted(needed_extras(specs, args.ckpt)):
+    print(f"[2/4] {len(specs)} 個模型{'＋性別一致項' if use_gt else ''}；檢查額外特徵", flush=True)
+    need = needed_extras(specs, args.ckpt)
+    if use_gt:
+        need.add(("voice", "v2"))  # 語音性別分類器的輸入（WavLM Base+ SV 說話者向量）
+    for modality, part in sorted(need):
         only, suffix = EXTRA[(modality, part)]
         files = [flag_data.V2 / f"{args.split}_{t}_{lang}_{suffix}.npy" for t, lang, _ in CELLS]
         if all(f.exists() for f in files):
@@ -122,11 +131,25 @@ def main():
         if args.eval_dir:
             cmd += ["--eval_dir", args.eval_dir]
         run(cmd)
+    if use_gt:
+        files = [flag_data.V2 / f"{args.split}_{t}_{lang}_face_attr.npy" for t, lang, _ in CELLS if t == "no_gender"]
+        if all(f.exists() for f in files):
+            print("  face_attr：已存在，略過", flush=True)
+        else:
+            # 臉部屬性用 ONNX Runtime，與 PyTorch 的 cuDNN 衝突，必須是獨立程序
+            cmd = [PY, "-I", "-X", "utf8", "-W", "ignore", "extract_attributes.py", "--only", "face", "--splits", args.split]
+            if args.eval_dir:
+                cmd += ["--eval_dir", args.eval_dir]
+            run(cmd)
 
     print("[3/4] 產生提交檔", flush=True)
-    spec = ",".join(f"{t}:{w:g}" for t, w in specs)
-    cmd = [PY, "-I", "-X", "utf8", "make_submission.py", "--tag", spec, "--split", args.split,
-           "--out", args.out, "--ckpt", args.ckpt]
+    if use_gt:
+        cmd = [PY, "-I", "-X", "utf8", "gender_term.py", "submit", "--models", args.models, "--split", args.split,
+               "--out", args.out, "--ckpt", args.ckpt]
+    else:
+        spec = ",".join(f"{t}:{w:g}" for t, w in specs)
+        cmd = [PY, "-I", "-X", "utf8", "make_submission.py", "--tag", spec, "--split", args.split,
+               "--out", args.out, "--ckpt", args.ckpt]
     if args.eval_dir:
         cmd += ["--split_dir", args.eval_dir]
     run(cmd)
