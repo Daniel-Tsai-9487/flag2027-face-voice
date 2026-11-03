@@ -61,9 +61,10 @@ def _load_csv(path, cache_name):
 V2 = DATA / "features_v2"
 # 特徵組以「+」串接多個來源：official（官方 VGGFace／ECAPA）、v2（ArcFace／WavLM 說話者向量）、
 # clip（CLIP 影像嵌入，只有臉部）、wavlmh（WavLM 隱藏層平均，只有語音）。concat 是 official+v2 的舊名。
-FEATURE_PARTS = ("official", "v2", "clip", "wavlmh")
-FACE_ONLY, VOICE_ONLY = {"clip"}, {"wavlmh"}
-_SUFFIX = {"clip": "_clip", "wavlmh": "_wavlmh"}
+# clipl、wavlml 是同樣做法的大模型版（CLIP ViT-L/14、WavLM Large）。
+FEATURE_PARTS = ("official", "v2", "clip", "wavlmh", "clipl", "wavlml")
+FACE_ONLY, VOICE_ONLY = {"clip", "clipl"}, {"wavlmh", "wavlml"}
+_SUFFIX = {"clip": "_clip", "wavlmh": "_wavlmh", "clipl": "_clipl", "wavlml": "_wavlml"}
 
 
 def check_feature_set(s):
@@ -83,7 +84,7 @@ def _combine(official, v2_name, feature_set):
             name = v2_name if part == "v2" else v2_name.replace(".npy", f"{_SUFFIX[part]}.npy")
             if not (V2 / name).exists():
                 split = name.split("_")[0]
-                only = {"v2": "faces" if "_faces" in name else "voices", "clip": "clip", "wavlmh": "wavlmh"}[part]
+                only = ("faces" if "_faces" in name else "voices") if part == "v2" else part
                 raise SystemExit(f"缺少 {V2 / name}；請先執行 extract_features.py --only {only} --splits {split}")
             arr = np.load(V2 / name).astype(np.float32)
             if len(arr) != len(official):

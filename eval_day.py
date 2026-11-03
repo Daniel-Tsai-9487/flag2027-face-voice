@@ -28,7 +28,8 @@ CELLS = [(t, lang, cond) for t in flag_data.TRACKS
          for lang, cond in ((flag_data.HEARD, "heard"), (flag_data.UNHEARD, "unheard"))]
 # 特徵來源 → extract_features.py 的 --only 參數與 features_v2 檔名
 EXTRA = {("face", "v2"): ("faces", "faces"), ("voice", "v2"): ("voices", "voices"),
-         ("face", "clip"): ("clip", "faces_clip"), ("voice", "wavlmh"): ("wavlmh", "voices_wavlmh")}
+         ("face", "clip"): ("clip", "faces_clip"), ("voice", "wavlmh"): ("wavlmh", "voices_wavlmh"),
+         ("face", "clipl"): ("clipl", "faces_clipl"), ("voice", "wavlml"): ("wavlml", "voices_wavlml")}
 
 
 def read_models(path):

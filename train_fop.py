@@ -87,6 +87,27 @@ class CrossModalTripletLoss(nn.Module):
         return 0.5 * (self._one_side(sim, same, neg_mask) + self._one_side(sim.t(), same, neg_mask))
 
 
+class CrossModalContrastiveLoss(nn.Module):
+    """臉與語音嵌入之間的監督式對比損失（InfoNCE，雙向）。官方 FOP 只訓練融合後的分類與 OPL；
+    這一項讓同一說話者的臉與聲音在測試時用的嵌入空間裡互相靠近、與批次內其他人分開。
+    pos='identity'：同一說話者的所有臉與聲音都是正例；pos='sample'：只有同一筆樣本（同一段影片）的臉與聲音。"""
+
+    def __init__(self, temp, pos):
+        super().__init__()
+        self.temp, self.pos = temp, pos
+
+    def forward(self, face_emb, voice_emb, labels):
+        f, v = F.normalize(face_emb, dim=1), F.normalize(voice_emb, dim=1)
+        logits = v @ f.t() / self.temp  # 列：語音錨點；行：臉
+        if self.pos == "sample":
+            target = torch.eye(len(labels), device=labels.device)
+        else:
+            target = (labels[:, None] == labels[None, :]).float()
+        target = target / target.sum(1, keepdim=True)  # 正例矩陣對稱，兩個方向共用
+        return -0.5 * ((target * F.log_softmax(logits, 1)).sum(1).mean()
+                       + (target * F.log_softmax(logits.t(), 1)).sum(1).mean())
+
+
 def fit_norm(face, voice):
     return {"face_mean": face.mean(0), "face_std": face.std(0) + 1e-6,
             "voice_mean": voice.mean(0), "voice_std": voice.std(0) + 1e-6}
@@ -137,6 +158,7 @@ def train(cfg, face, voice, labels, gender, n_epochs, val_pairs=None, log=None):
     opt = optimizer_for(model, cfg)
     ce, opl = nn.CrossEntropyLoss(), OrthogonalProjectionLoss()
     xm = CrossModalTripletLoss(cfg.xm_margin, cfg.xm_neg)
+    con = CrossModalContrastiveLoss(cfg.con_temp, cfg.con_pos)
 
     order = list(range(len(labels)))
     random.shuffle(order)
@@ -157,6 +179,8 @@ def train(cfg, face, voice, labels, gender, n_epochs, val_pairs=None, log=None):
             loss = ce(logits, lab_t[sl]) + cfg.alpha * opl(feats, lab_t[sl])
             if cfg.xm_weight > 0:
                 loss = loss + cfg.xm_weight * xm(f_emb, v_emb, lab_t[sl], gen_t[sl])
+            if cfg.con_weight > 0:
+                loss = loss + cfg.con_weight * con(f_emb, v_emb, lab_t[sl])
             opt.zero_grad()
             loss.backward()
             opt.step()
@@ -199,6 +223,9 @@ def main():
     p.add_argument("--xm_weight", type=float, default=0.0, help="跨模態 triplet 損失權重，0 為關閉")
     p.add_argument("--xm_neg", choices=["any", "same_gender"], default="same_gender")
     p.add_argument("--xm_margin", type=float, default=0.2)
+    p.add_argument("--con_weight", type=float, default=0.0, help="跨模態對比（InfoNCE）損失權重，0 為關閉")
+    p.add_argument("--con_temp", type=float, default=0.1)
+    p.add_argument("--con_pos", choices=["identity", "sample"], default="identity")
     p.add_argument("--no_stage2", action="store_true", help="只跑第一階段，比較設定時用")
     p.add_argument("--features", default="official",
                    help="臉部特徵組：official、v2（ArcFace）、clip，或以 + 串接，例如 official+clip；concat 即 official+v2")

@@ -88,9 +88,9 @@ gender-consistency term from `runs/gender_term.json` (`--no_gender_term` gives t
 | File | Purpose |
 |---|---|
 | `src/flag_data.py` | Loads features and pair lists, builds the speaker-disjoint validation pairs, computes EER |
-| `extract_features.py` | Extracts CLIP face (`--only clip`), WavLM hidden-state voice (`--only wavlmh`) and WavLM Base+ SV voice (`--only voices`) embeddings, plus the ArcFace features we also tried (`--only faces`) |
+| `extract_features.py` | Extracts CLIP face (`--only clip`), WavLM hidden-state voice (`--only wavlmh`) and WavLM Base+ SV voice (`--only voices`) embeddings, plus features we also tried: ArcFace (`--only faces`), CLIP ViT-L/14 (`--only clipl`) and WavLM Large hidden states (`--only wavlml`) |
 | `extract_attributes.py` | Face gender and age with the frozen InsightFace genderage model (`--only face`); the voice age/gender model (`--only voice`) was tried but not used |
-| `train_fop.py` | Trains FOP (`--features`, `--voice_features`, `--standardize`, `--lr`, `--seed`) |
+| `train_fop.py` | Trains FOP (`--features`, `--voice_features`, `--standardize`, `--lr`, `--seed`); the cross-modal triplet (`--xm_weight`) and contrastive (`--con_weight`) losses were tried but are not used in the final system |
 | `make_submission.py` | Writes the Codabench zip; `--tag a:0.7,b:0.3` averages several models with weights |
 | `gender_term.py` | `fit` fixes λ and the voice-gender classifier on training speakers; `submit` writes the zip with the gender term |
 | `eval_day.py` | One-command submission from the models in `final_models.txt` plus the gender term (`--split dev` or `eval`) |

@@ -19,6 +19,9 @@ import numpy as np
 ROOT = Path(__file__).resolve().parent
 DATA = ROOT / "data"
 OUT = DATA / "features_v2"
+# --only 名稱 → 預訓練模型；輸出檔名後綴與名稱相同（faces_clip、voices_wavlmh ...）
+CLIP_MODELS = {"clip": "openai/clip-vit-base-patch16", "clipl": "openai/clip-vit-large-patch14"}
+WAVLM_MODELS = {"wavlmh": "microsoft/wavlm-base-plus", "wavlml": "microsoft/wavlm-large"}
 
 
 def lists(splits=("train", "dev"), eval_dir=None):
@@ -82,7 +85,7 @@ def extract_voices(paths, fe, model, device, max_sec):
 
 
 def extract_wavlm_hidden(paths, fe, model, device, max_sec):
-    """WavLM Base+（未做說話者驗證微調）12 層 Transformer 輸出先對時間取平均，再對層取平均，768 維。
+    """WavLM（未做說話者驗證微調）各層 Transformer 輸出先對時間取平均，再對層取平均（Base+ 12 層 768 維、Large 24 層 1024 維）。
     說話者驗證向量會刻意壓掉年齡、口音等與身分無關的資訊；這裡保留這些屬性，對應臉部的 CLIP。"""
     import soundfile as sf
     import torch
@@ -121,7 +124,8 @@ def extract_clip(paths, proc, model, device, batch=64):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--only", choices=["faces", "voices", "both", "clip", "wavlmh"], default="both")
+    p.add_argument("--only", choices=["faces", "voices", "both", "clip", "wavlmh", "clipl", "wavlml"],
+                   default="both")
     p.add_argument("--max_sec", type=float, default=20.0, help="語音最長取幾秒")
     p.add_argument("--splits", default="train,dev", help="逗號分隔：train、dev、eval")
     p.add_argument("--eval_dir", default=None, help="eval 資料夾不是 data/eval_set 時指定")
@@ -160,25 +164,26 @@ def main():
             print(f"[voices] {name} {len(wavs)}", flush=True)
             np.save(OUT / f"{name}_voices.npy", extract_voices(wavs, fe, model, device, args.max_sec))
 
-    if args.only == "clip":
+    if args.only in CLIP_MODELS:
         from transformers import CLIPModel, CLIPProcessor
 
-        name = "openai/clip-vit-base-patch16"
+        name = CLIP_MODELS[args.only]
         proc = CLIPProcessor.from_pretrained(name)
         model = CLIPModel.from_pretrained(name).to("cuda").eval()
         for split, imgs, _ in jobs:
-            print(f"[clip] {split} {len(imgs)}", flush=True)
-            np.save(OUT / f"{split}_faces_clip.npy", extract_clip(imgs, proc, model, "cuda"))
+            print(f"[{args.only}] {split} {len(imgs)}", flush=True)
+            np.save(OUT / f"{split}_faces_{args.only}.npy", extract_clip(imgs, proc, model, "cuda"))
 
-    if args.only == "wavlmh":
+    if args.only in WAVLM_MODELS:
         from transformers import AutoFeatureExtractor, WavLMModel
 
-        name = "microsoft/wavlm-base-plus"
+        name = WAVLM_MODELS[args.only]
         fe = AutoFeatureExtractor.from_pretrained(name)
         model = WavLMModel.from_pretrained(name).to("cuda").eval()
         for split, _, wavs in jobs:
-            print(f"[wavlmh] {split} {len(wavs)}", flush=True)
-            np.save(OUT / f"{split}_voices_wavlmh.npy", extract_wavlm_hidden(wavs, fe, model, "cuda", args.max_sec))
+            print(f"[{args.only}] {split} {len(wavs)}", flush=True)
+            np.save(OUT / f"{split}_voices_{args.only}.npy",
+                    extract_wavlm_hidden(wavs, fe, model, "cuda", args.max_sec))
 
     old = OUT / "stats.json"
     merged = json.loads(old.read_text(encoding="utf-8")) if old.exists() else {}

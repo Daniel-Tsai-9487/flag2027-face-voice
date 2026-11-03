@@ -107,13 +107,14 @@ def fit(args):
         print(f"  λ={lam:<5} no_gender 驗證 EER {100*e:.2f}")
     lam = min(grid, key=lambda x: (res[x], x))
     clf70 = fit_voice_gender(v2_voice, is_male)
-    CFG.write_text(json.dumps({"lambda": lam, "val_eer": {str(k): v for k, v in res.items()},
+    cfg_path = Path(args.cfg)
+    cfg_path.write_text(json.dumps({"lambda": lam, "val_eer": {str(k): v for k, v in res.items()},
                                "voice_gender_clf": clf70, "models": specs}, ensure_ascii=False), encoding="utf-8")
-    print(f"選定 λ={lam}，寫出 {CFG}")
+    print(f"選定 λ={lam}，寫出 {cfg_path}")
 
 
 def submit(args):
-    cfg = json.loads(CFG.read_text(encoding="utf-8"))
+    cfg = json.loads(Path(args.cfg).read_text(encoding="utf-8"))
     lam, clf = cfg["lambda"], cfg["voice_gender_clf"]
     specs = read_models(args.models)
     if [list(x) for x in specs] != [list(x) for x in cfg["models"]]:
@@ -157,6 +158,7 @@ def main():
     p.add_argument("--split", choices=["dev", "eval"], default="dev")
     p.add_argument("--split_dir", default=None)
     p.add_argument("--out", default="ens20_gender")
+    p.add_argument("--cfg", default=str(CFG), help="λ 與分類器的存放檔；試其他模型組合時另指定，以免覆蓋最終系統的設定")
     p.add_argument("--ckpt", default="final.pt", help="submit 用的 runs/<tag>/ 檔名（fit 固定用 stage1_best.pt）")
     args = p.parse_args()
     fit(args) if args.cmd == "fit" else submit(args)
