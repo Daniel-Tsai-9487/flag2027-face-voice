@@ -36,6 +36,16 @@ parameter or statistic is estimated on development or evaluation data.
 
 NG: no_gender, G: gender, En: English (heard), Bn: Bangla (unheard).
 
+## Evaluation-set results (EER %)
+
+| System | NG-En | NG-Bn | G-En | G-Bn | Avg. |
+|---|---|---|---|---|---|
+| FOP baseline (official, from the evaluation plan) | 29.10 | 32.90 | 39.40 | 39.90 | 35.32 |
+| **Final system** | 28.57 | 21.70 | 43.75 | 40.78 | **33.70** |
+
+The system was frozen before the evaluation phase and submitted once. It improves on the baseline on both no_gender
+tracks and is worse on both gender tracks, where negatives share the gender of the positive speaker.
+
 ## Setup
 
 ```bash
@@ -74,7 +84,15 @@ classifier and the model list in `runs/gender_term.json`; rerun it whenever `fin
 
 ## Evaluation phase
 
-Unzip the evaluation inputs into `data/eval_set/` (same layout as `dev_set/`; otherwise pass `--eval_dir`), then:
+Unzip the evaluation inputs into `data/eval_set/` (same layout as `dev_set/`; otherwise pass `--eval_dir`).
+The released `evaluation_phase.zip` differs from that layout in two ways, which we fixed in a local copy:
+
+- Folders, pair lists and feature CSVs are named `{lang}_valid` instead of `{lang}_test`; rename them, including the
+  relative paths inside the pair lists.
+- In `gender/English_valid.txt` the face paths read `faces 00000.jpg` instead of `faces/00000.jpg`; restore the slash.
+  Trial keys and line order are unchanged.
+
+Then run:
 
 ```bash
 python -I -X utf8 eval_day.py      # checks the folder, extracts missing features, writes and verifies submissions/final_eval.zip
