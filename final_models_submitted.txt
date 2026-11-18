@@ -1,0 +1,22 @@
+# Models of the submitted system (dev 28.24%, evaluation 33.70%): run name and weight.
+# Their checkpoints are in runs/. Use: python eval_day.py --split eval --models final_models_submitted.txt
+r8_clip_wavlmh_s1 1
+r8_clip_wavlmh_s2 1
+r8_clip_wavlmh_s3 1
+r8_clip_wavlmh_s4 1
+r8_clip_wavlmh_s5 1
+r9_clip_wavlmh_s6 1
+r9_clip_wavlmh_s7 1
+r9_clip_wavlmh_s8 1
+r9_clip_wavlmh_s9 1
+r9_clip_wavlmh_s10 1
+fop_std_lr1e-4 1
+r5_off_s2 1
+r5_off_s3 1
+r5_off_s4 1
+r5_off_s5 1
+r9_off_s6 1
+r9_off_s7 1
+r9_off_s8 1
+r9_off_s9 1
+r9_off_s10 1

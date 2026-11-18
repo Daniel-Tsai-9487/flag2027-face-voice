@@ -82,6 +82,20 @@ Each model trains in about two minutes on an 8 GB laptop GPU (RTX 5060); feature
 `gender_term.py fit` uses the stage-1 checkpoints of the models in `final_models.txt` and stores λ, the voice-gender
 classifier and the model list in `runs/gender_term.json`; rerun it whenever `final_models.txt` changes.
 
+## Submitted checkpoints
+
+The 20 trained FOP models of the submitted system (`runs/<name>/final.pt`, about 35 MB in total) and the fitted
+gender term (`runs/gender_term.json`) are included, with the model list in `final_models_submitted.txt`. They reproduce
+the development and evaluation submissions without retraining; only the pretrained encoders are downloaded:
+
+```bash
+python -I -X utf8 eval_day.py --split dev  --models final_models_submitted.txt --out final_dev    # dev, 28.24%
+python -I -X utf8 eval_day.py --split eval --models final_models_submitted.txt --out final_eval   # evaluation, 33.70%
+```
+
+`reproduce_final.sh` retrains equivalent models under new names (`off_s*`, `clipw_s*`) and refits
+`runs/gender_term.json`; run `git checkout runs/gender_term.json` afterwards to restore the submitted one.
+
 ## Evaluation phase
 
 Unzip the evaluation inputs into `data/eval_set/` (same layout as `dev_set/`; otherwise pass `--eval_dir`).
@@ -123,8 +137,9 @@ gender-consistency term from `runs/gender_term.json` (`--no_gender_term` gives t
 - Gender-consistency term: InsightFace `buffalo_l` (SCRFD detector and genderage model) and WavLM Base+ SV
   (`microsoft/wavlm-base-plus-sv`)
 
-All pretrained models are used frozen. This repository contains no model weights or challenge data; the pretrained
-models are downloaded from their original sources and remain under their own licenses. In particular, the InsightFace
+All pretrained models are used frozen. This repository contains the trained FOP checkpoints of the submitted system
+but no pretrained-encoder weights and no challenge data; the pretrained models are downloaded from their original
+sources and remain under their own licenses. In particular, the InsightFace
 `buffalo_l` models (used for face gender and by the ArcFace experiments) are released for non-commercial research
 only.
 
